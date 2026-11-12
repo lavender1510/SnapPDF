@@ -1,0 +1,23 @@
+SnapPDF uses the following third-party components:
+
+AndroidX / Jetpack Compose / Material 3 / CameraX / Room / ExifInterface / DocumentFile
+https://developer.android.com/jetpack/androidx — Apache License 2.0
+
+Kotlin and kotlinx.coroutines
+https://kotlinlang.org — Apache License 2.0
+
+OpenCV 4.12.0
+https://opencv.org — Apache License 2.0; see also OpenCV-Legacy-BSD.txt
+
+PDFBox Android 2.0.27.0 (Apache PDFBox port)
+https://github.com/TomRoush/PdfBox-Android — Apache License 2.0
+
+Coil 2.7.0
+https://coil-kt.github.io/coil/ — Apache License 2.0
+
+Google ML Kit Text Recognition 16.0.1 (bundled Latin model)
+https://developers.google.com/ml-kit/terms
+Google ML Kit Terms of Service and applicable Android SDK terms apply.
+Third-party notices supplied by dependencies are retained in META-INF.
+
+The Apache License text is included in Apache-2.0.txt.

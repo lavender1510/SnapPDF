@@ -1,0 +1,5 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="scan" android:enabled="true" android:icon="@drawable/ic_scan" android:shortcutShortLabel="@string/shortcut_scan">
+        <intent android:action="de.snappdf.SCAN" android:targetPackage="de.snappdf" android:targetClass="de.snappdf.MainActivity" />
+    </shortcut>
+</shortcuts>
