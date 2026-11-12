@@ -18,4 +18,3 @@ Vor der Veröffentlichung durch die tatsächlich ausgeführten Build-, Test- und
 ## Bekannte Grenzen
 
 OCR erkennt schwer lesbare Handschrift und mathematische Formeln nicht zuverlässig. Die Bildseite bleibt erhalten. Automatische Ecken und heuristische Schärfe-/Lichtwerte sollten bei schwierigen Aufnahmen manuell kontrolliert werden. Eine automatische Garantie für vollständige Inhalte oder korrekte Leserichtung gibt es nicht.
-

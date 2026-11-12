@@ -62,4 +62,3 @@ Erst eine erfolgreiche PDF-Speicherung oder ein ausdrückliches Verwerfen darf d
 Die reduzierte Bewegung wirkt über einen `MotionDurationScale` im Compose-Coroutine-Kontext. Der öffentliche Compose-Factory `createLifecycleAwareWindowRecomposer` erhält die übliche Android-Lebenszyklussteuerung und schaltet lediglich die Animationsdauer auf null. Wird die Option deaktiviert, gilt wieder der schreibgeschützt beobachtete Systemwert. Die Beobachtung läuft nur während einer sichtbaren Activity; globale Android-Einstellungen werden nicht verändert.
 
 Es gibt keine Anmeldung, Telemetrie oder Serverkomponente. Die Anwendung deklariert keine Internetberechtigung. Vom Nutzer bewusst ausgewählte externe Android-Apps und Dokumentanbieter unterliegen deren eigenen Datenschutzbedingungen.
-

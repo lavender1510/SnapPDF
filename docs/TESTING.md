@@ -17,7 +17,7 @@ adb devices
 ./gradlew connectedDebugAndroidTest
 ```
 
-Die auf Android ausgeführten Tests sind insbesondere für OpenCV, Bitmaps, OCR, PDF und lokale Speicherung relevant. JVM-Tests allein können die nativen Android- und OpenCV-Komponenten nicht validieren. Der GitHub-Workflow baut und prüft ohne angeschlossene Kamera.
+Die auf Android ausgeführten Tests sind insbesondere für OpenCV, Bitmaps, OCR, PDF und lokale Speicherung relevant. JVM-Tests allein können die nativen Android- und OpenCV-Komponenten nicht validieren. Der GitHub-Workflow führt diese Tests zusätzlich auf einem hardwarebeschleunigten API-35-Emulator aus; eine physische Kamera ist dabei nicht angeschlossen.
 
 | Testklasse | Schwerpunkt |
 | --- | --- |
@@ -27,8 +27,11 @@ Die auf Android ausgeführten Tests sind insbesondere für OpenCV, Bitmaps, OCR,
 | `DocumentRepositoryTest` | Entwurfswiederherstellung, durchsuchbare mehrseitige PDFs, Zusammenführung und Erhalt bei Fehlern |
 | `RetakeRecoveryTest` | Fehlgeschlagene Neuaufnahme darf die bereits erfolgreiche Seite nicht ersetzen |
 | `MotionSettingsTest` | Animationsmaßstab der tatsächlichen Compose-Komposition folgt der Einstellung auch nach Stop/Resume |
+| `PreviewScreenshotsTest` | Installierte App per Android-UI-Automation: Startseite, Einstellungen und echter fotografierter Scanentwurf in Light/Dark |
 
 Quelle, Lizenz und Grenzen des fotografierten Testbilds sind in [TEST_FIXTURES.md](TEST_FIXTURES.md) dokumentiert.
+
+Die CI lädt native Testergebnisse und Berichte als Artefakt **Android-API35-test-evidence** hoch. Screenshots entstehen im externen App-Verzeichnis `files/qa` und werden vor dem Beenden des Emulators zusammen mit einem begrenzten Logcat-Auszug übernommen. Die Editor-Screenshots verwenden ausschließlich das gekennzeichnete OpenCV-Testfoto; die App enthält keine vorgetäuschten Beispieldokumente.
 
 ## Verifikationsstand
 
@@ -73,4 +76,3 @@ Die Originalaufnahme und das exportierte PDF nebeneinander vergleichen. Besonder
 ## Release-Prüfung
 
 Vor jeder Veröffentlichung dieselbe signierte APK installieren, die angehängt wird. Signatur mit `apksigner verify`, Versionsnummer mit `aapt dump badging` und SHA-256-Prüfsumme kontrollieren. Ein Update über eine vorherige Version benötigt denselben Signierschlüssel. Keine Schlüssel, Passwörter, privaten Dokumente oder lokalen SDK-Pfade in Git einchecken.
-

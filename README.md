@@ -89,4 +89,3 @@ app/src/main/java/de/snappdf/
 ```
 
 [ARCHITECTURE.md](docs/ARCHITECTURE.md) erläutert Datenfluss und wichtige Entscheidungen. [TESTING.md](docs/TESTING.md) enthält automatisierte Prüfungen, reale Testfälle und den Verifikationsstand. Die dort getrennt ausgewiesenen Gerätetests dürfen durch einen erfolgreichen Build nicht als erledigt gelten.
-
