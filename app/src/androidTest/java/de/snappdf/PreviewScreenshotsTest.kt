@@ -3,7 +3,6 @@ package de.snappdf
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.os.ParcelFileDescriptor
-import android.os.Build
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasContentDescription
@@ -109,22 +108,17 @@ class PreviewScreenshotsTest {
             // external app directory. Keep test evidence in shell-owned scratch
             // storage so CI can retrieve it after that cleanup.
             val destination = "/data/local/tmp/snappdf-qa/$name"
-            if (Build.VERSION.SDK_INT >= 31) {
-                // Stream the bytes into the shell-owned file: recent Android
-                // versions prevent shell cp from reading another app's external
-                // data directory through scoped-storage FUSE rules.
-                val pipes = instrumentation.uiAutomation.executeShellCommandRw(
-                    "mkdir -p /data/local/tmp/snappdf-qa && cat > $destination && test -s $destination && echo SNAPPDF_SCREENSHOT_SAVED"
-                )
-                ParcelFileDescriptor.AutoCloseOutputStream(pipes[1]).use { output ->
-                    assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
-                }
-                val result = ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).bufferedReader().use { it.readText() }
-                assertTrue("Screenshot evidence must survive APK cleanup", "SNAPPDF_SCREENSHOT_SAVED" in result)
-            } else {
-                val command = "mkdir -p /data/local/tmp/snappdf-qa && cp ${File(directory, name).absolutePath} $destination"
-                ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
-            }
+            // UiAutomation executes a command directly, without an implicit sh.
+            // Individual commands avoid interpreting shell operators as mkdir
+            // arguments and create evidence outside APK-managed storage.
+            shell("mkdir -p /data/local/tmp/snappdf-qa")
+            val captureResult = shell("screencap -p $destination")
+            val size = shell("stat -c %s $destination").trim().toLongOrNull()
+            assertTrue("Screenshot evidence must survive APK cleanup: $captureResult", size != null && size > 1000L)
         } finally { bitmap.recycle() }
     }
+
+    private fun shell(command: String): String =
+        ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
+            .bufferedReader().use { it.readText() }
 }
