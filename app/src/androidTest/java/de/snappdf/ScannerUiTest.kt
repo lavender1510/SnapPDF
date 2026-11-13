@@ -76,7 +76,11 @@ class ScannerUiTest {
             }
             compose.onNodeWithText("Automatische Aufnahme").performScrollTo().performClick()
             compose.runOnIdle { assertTrue(store.settings.value.autoCapture) }
-            compose.onNodeWithText("Scan-Verknüpfung").performScrollTo().performClick()
+            // Scroll and tap the visible label. The merged action row includes
+            // its multiline description, which may still extend below the
+            // viewport after bringIntoView has revealed only the label.
+            compose.onNodeWithText("Scan-Verknüpfung", useUnmergedTree = true)
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.runOnIdle { assertEquals(1, shortcutRequests) }
             assertTrue(SettingsStore(context).settings.value.autoCapture)
         } finally {

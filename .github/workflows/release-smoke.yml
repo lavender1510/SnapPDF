@@ -12,9 +12,14 @@ on:
         description: Independently verified SHA-256 of SnapPDF-TAG.apk
         type: string
         required: true
+      candidate_ref:
+        description: Optional temporary release-candidate branch with the pre-signed APK parts
+        type: string
+        required: false
+        default: ''
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: signed-release-smoke-${{ github.ref }}-${{ inputs.tag }}
@@ -27,6 +32,7 @@ jobs:
     env:
       SNAPPDF_RELEASE_TAG: ${{ inputs.tag }}
       SNAPPDF_EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+      SNAPPDF_CANDIDATE_REF: ${{ inputs.candidate_ref }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -62,6 +68,11 @@ jobs:
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           script: bash .github/scripts/release-smoke.sh run
+      - name: Attach the verified candidate to the unpublished release
+        if: inputs.candidate_ref != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/release-smoke.sh upload
       - name: Upload signature, manifest and runtime evidence
         if: always()
         uses: actions/upload-artifact@v4

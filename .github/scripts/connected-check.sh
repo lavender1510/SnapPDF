@@ -6,7 +6,7 @@ set -uo pipefail
 test_status=$?
 
 mkdir -p app/build/outputs/qa
-adb pull /sdcard/Android/data/de.snappdf/files/qa/. app/build/outputs/qa/ || true
+adb pull /data/local/tmp/snappdf-qa/. app/build/outputs/qa/ || true
 adb logcat -d -t 1500 > app/build/outputs/qa/emulator-logcat.txt || true
 
 exit "$test_status"

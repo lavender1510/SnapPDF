@@ -202,8 +202,10 @@ class DocumentProcessor(@Suppress("UNUSED_PARAMETER") context: Context) {
                 val corrected = mats.mat()
                 val points = selectedQuad.points().map { Point(it.x * (rgba.cols() - 1.0), it.y * (rgba.rows() - 1.0)) }
                 fun distance(a: Point, b: Point) = hypot(a.x - b.x, a.y - b.y)
-                val width = max(distance(points[0], points[1]), distance(points[3], points[2])).roundToInt().coerceIn(64, MAX_IMAGE_SIDE)
-                val height = max(distance(points[0], points[3]), distance(points[1], points[2])).roundToInt().coerceIn(64, MAX_IMAGE_SIDE)
+                // Corners refer to pixel centres: the distance from pixel 0 to
+                // pixel n - 1 spans n pixels, including both endpoints.
+                val width = (max(distance(points[0], points[1]), distance(points[3], points[2])).roundToInt() + 1).coerceIn(64, MAX_IMAGE_SIDE)
+                val height = (max(distance(points[0], points[3]), distance(points[1], points[2])).roundToInt() + 1).coerceIn(64, MAX_IMAGE_SIDE)
                 val sourcePoints = mats.own(MatOfPoint2f(*points.toTypedArray()))
                 val targetPoints = mats.own(MatOfPoint2f(Point(0.0, 0.0), Point(width - 1.0, 0.0), Point(width - 1.0, height - 1.0), Point(0.0, height - 1.0)))
                 val transform = mats.own(Imgproc.getPerspectiveTransform(sourcePoints, targetPoints))

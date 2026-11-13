@@ -248,7 +248,7 @@ private fun SettingsToggle(title: String, checked: Boolean, onChecked: (Boolean)
 
 @Composable
 private fun SettingsAction(title: String, description: String, icon: ImageVector, onClick: () -> Unit, enabled: Boolean = true) {
-    Row(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(4.dp))

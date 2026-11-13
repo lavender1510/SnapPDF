@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Verify and exercise a downloaded release asset. Never build or publish an APK.
+# Verify a pre-signed APK, exercise it, and optionally attach it to a draft.
+# No private signing key is needed by or transferred to this workflow.
 set -euo pipefail
 
 evidence_dir="${GITHUB_WORKSPACE:-$PWD}/app/build/outputs/release-smoke"
@@ -16,6 +17,9 @@ fail() {
 validate_inputs() {
   [[ ${SNAPPDF_RELEASE_TAG:-} =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || fail 'Invalid release tag.'
   [[ ${SNAPPDF_EXPECTED_SHA256:-} =~ ^[[:xdigit:]]{64}$ ]] || fail 'Expected SHA-256 must contain exactly 64 hexadecimal digits.'
+  if [[ -n ${SNAPPDF_CANDIDATE_REF:-} ]]; then
+    [[ $SNAPPDF_CANDIDATE_REF =~ ^refs/heads/release-candidate/v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid temporary candidate branch.'
+  fi
 }
 
 verify_hash() {
@@ -44,22 +48,55 @@ if len(matching) != 1:
 release = matching[0]
 name = f'SnapPDF-{tag}.apk'
 assets = [asset for asset in release['assets'] if asset['name'] == name and asset['state'] == 'uploaded']
-if len(assets) != 1 or assets[0]['size'] <= 0:
+candidate = os.environ.get('SNAPPDF_CANDIDATE_REF', '')
+if candidate and not release['draft']:
+    raise SystemExit('Candidate uploads are allowed only while the release remains a draft.')
+if not candidate and (len(assets) != 1 or assets[0]['size'] <= 0):
     raise SystemExit(f'Expected exactly one completely uploaded asset named {name}.')
-asset = assets[0]
+asset = assets[0] if not candidate else None
 metadata = {
     'release_id': release['id'], 'tag': tag, 'draft_at_download': release['draft'],
-    'asset_id': asset['id'], 'asset_name': name, 'asset_size': asset['size'],
+    'asset_id': asset['id'] if asset else None, 'asset_name': name,
+    'asset_size': asset['size'] if asset else None, 'candidate_ref': candidate,
     'expected_sha256': os.environ['SNAPPDF_EXPECTED_SHA256'].lower(),
     'workflow_commit': os.environ.get('GITHUB_SHA', '')
 }
 Path(sys.argv[2]).write_text(json.dumps(metadata, indent=2) + '\n')
-Path(sys.argv[3]).write_text(str(int(asset['id'])) + '\n')
+Path(sys.argv[3]).write_text(str(int(asset['id'])) + '\n' if asset else '\n')
 PY
-  local asset_id
-  read -r asset_id < "$asset_id_file"
-  if ! gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$apk_path"; then
-    fail 'The workflow token could not download the draft release asset. Check draft-asset read access; the release remains unpublished.'
+  if [[ -n ${SNAPPDF_CANDIDATE_REF:-} ]]; then
+    git fetch --no-tags --depth=1 origin "$SNAPPDF_CANDIDATE_REF"
+    git show FETCH_HEAD:manifest.json > "$runtime_dir/snappdf-candidate-manifest.json"
+    python3 - "$runtime_dir/snappdf-candidate-manifest.json" "$apk_path" "$evidence_dir/asset.json" <<'PY'
+import json, os, re, subprocess, sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text())
+expected = os.environ['SNAPPDF_EXPECTED_SHA256'].lower()
+if manifest['filename'] != f"SnapPDF-{os.environ['SNAPPDF_RELEASE_TAG']}.apk" or manifest['sha256'] != expected:
+    raise SystemExit('Candidate manifest does not match the requested APK and independent checksum.')
+parts = manifest['parts']
+if not 1 <= len(parts) <= 32 or parts != [f'part-{i:03d}' for i in range(len(parts))]:
+    raise SystemExit('Candidate parts must be a bounded, ordered list.')
+if not re.fullmatch(r'[0-9a-f]{40}', manifest['sourceCommit']):
+    raise SystemExit('Candidate source commit is invalid.')
+with Path(sys.argv[2]).open('wb') as output:
+    for part in parts:
+        size = int(subprocess.check_output(['git', 'cat-file', '-s', f'FETCH_HEAD:{part}']))
+        if not 0 < size <= 8 * 1024 * 1024:
+            raise SystemExit('Candidate part has an invalid size.')
+        subprocess.run(['git', 'show', f'FETCH_HEAD:{part}'], stdout=output, check=True)
+metadata_path = Path(sys.argv[3])
+metadata = json.loads(metadata_path.read_text())
+metadata.update(asset_size=Path(sys.argv[2]).stat().st_size, source_commit=manifest['sourceCommit'])
+metadata_path.write_text(json.dumps(metadata, indent=2) + '\n')
+PY
+  else
+    local asset_id
+    read -r asset_id < "$asset_id_file"
+    if ! gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "$apk_path"; then
+      fail 'The workflow token could not download the draft release asset. The release remains unpublished.'
+    fi
   fi
   verify_hash
   sha256sum "$apk_path" > "$evidence_dir/SHA256SUMS.txt"
@@ -92,6 +129,32 @@ if 'android.permission.INTERNET' in permissions:
 )
 PY
   touch "$runtime_dir/snappdf-release-smoke-prepared"
+}
+
+upload_candidate() {
+  validate_inputs
+  [[ -n ${SNAPPDF_CANDIDATE_REF:-} && -s "$evidence_dir/runtime-checks.txt" ]] || fail 'Candidate installation and launch must succeed before attaching assets.'
+  verify_hash
+  gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases" > "$runtime_dir/snappdf-upload-release-list.json"
+  python3 - "$runtime_dir/snappdf-upload-release-list.json" <<'PY'
+import json, os, sys
+from pathlib import Path
+releases = [release for page in json.loads(Path(sys.argv[1]).read_text()) for release in page]
+matches = [release for release in releases if release['tag_name'] == os.environ['SNAPPDF_RELEASE_TAG']]
+if len(matches) != 1 or not matches[0]['draft']:
+    raise SystemExit('The release is no longer a unique draft. No assets were changed.')
+PY
+  local assets_dir="$runtime_dir/snappdf-tested-release"
+  local filename="SnapPDF-$SNAPPDF_RELEASE_TAG.apk"
+  mkdir -p "$assets_dir"
+  cp "$apk_path" "$assets_dir/$filename"
+  printf '%s  %s\n' "${SNAPPDF_EXPECTED_SHA256,,}" "$filename" > "$assets_dir/SHA256SUMS.txt"
+  {
+    printf 'SnapPDF signed APK verification\n\nWorkflow: https://github.com/%s/actions/runs/%s\n\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+    cat "$evidence_dir/static-checks.txt" "$evidence_dir/runtime-checks.txt"
+    printf '\nSHA-256: %s\n' "${SNAPPDF_EXPECTED_SHA256,,}"
+  } > "$assets_dir/SMOKE_VERIFICATION.txt"
+  gh release upload "$SNAPPDF_RELEASE_TAG" "$assets_dir/$filename" "$assets_dir/SHA256SUMS.txt" "$assets_dir/SMOKE_VERIFICATION.txt" --repo "$GITHUB_REPOSITORY" --clobber
 }
 
 collect_runtime_evidence() {
@@ -153,5 +216,6 @@ PY
 case ${1:-} in
   prepare) prepare ;;
   run) run_smoke ;;
-  *) fail 'Usage: release-smoke.sh prepare|run' ;;
+  upload) upload_candidate ;;
+  *) fail 'Usage: release-smoke.sh prepare|run|upload' ;;
 esac

@@ -2,6 +2,7 @@ package de.snappdf
 
 import android.graphics.Bitmap
 import android.os.SystemClock
+import android.os.ParcelFileDescriptor
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -108,6 +109,12 @@ class PreviewScreenshotsTest {
             File(directory, name).outputStream().use {
                 assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
             }
+            // Gradle may uninstall the target APK after the suite, removing its
+            // external app directory. Keep test evidence in shell-owned scratch
+            // storage so CI can retrieve it after that cleanup.
+            val command = "mkdir -p /data/local/tmp/snappdf-qa && cp ${File(directory, name).absolutePath} /data/local/tmp/snappdf-qa/$name"
+            ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
+                .use { it.readBytes() }
         } finally { bitmap.recycle() }
     }
 }

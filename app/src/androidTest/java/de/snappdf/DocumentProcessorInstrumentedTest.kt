@@ -137,6 +137,29 @@ class DocumentProcessorInstrumentedTest {
         upright.recycle()
     }
 
+    @Test fun fullImageCropPreservesDimensionsAndAllFourOuterCorners() = runBlocking<Unit> {
+        val bitmap = Bitmap.createBitmap(100, 160, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+        val ink = Paint().apply { color = Color.BLACK }
+        canvas.drawRect(0f, 0f, 4f, 4f, ink)
+        canvas.drawRect(96f, 0f, 100f, 4f, ink)
+        canvas.drawRect(96f, 156f, 100f, 160f, ink)
+        canvas.drawRect(0f, 156f, 4f, 160f, ink)
+        val source = save(bitmap, "outer-corners.png")
+        bitmap.recycle()
+        val output = File(directory, "outer-corners-result.png")
+        processor.process(source, output, ScanMode.STANDARD, .5f, DocumentQuad.FULL)
+        val result = processor.loadBitmap(output)
+        try {
+            assertEquals(100, result.width)
+            assertEquals(160, result.height)
+            for ((x, y) in listOf(0 to 0, 99 to 0, 99 to 159, 0 to 159)) {
+                assertEquals("The outermost corner pixel must survive cropping", 0, Color.red(result.getPixel(x, y)))
+            }
+        } finally { result.recycle() }
+    }
+
     @Test fun damagedInputFailsWithoutReplacingOriginal() = runBlocking {
         val input = File(directory, "damaged.png").apply { writeText("not an image") }
         val output = File(directory, "should-not-exist.png")
