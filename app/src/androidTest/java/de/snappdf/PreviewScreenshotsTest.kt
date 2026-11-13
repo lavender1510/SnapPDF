@@ -3,6 +3,7 @@ package de.snappdf
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.os.ParcelFileDescriptor
+import android.os.Build
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -112,9 +113,23 @@ class PreviewScreenshotsTest {
             // Gradle may uninstall the target APK after the suite, removing its
             // external app directory. Keep test evidence in shell-owned scratch
             // storage so CI can retrieve it after that cleanup.
-            val command = "mkdir -p /data/local/tmp/snappdf-qa && cp ${File(directory, name).absolutePath} /data/local/tmp/snappdf-qa/$name"
-            ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command))
-                .use { it.readBytes() }
+            val destination = "/data/local/tmp/snappdf-qa/$name"
+            if (Build.VERSION.SDK_INT >= 31) {
+                // Stream the bytes into the shell-owned file: recent Android
+                // versions prevent shell cp from reading another app's external
+                // data directory through scoped-storage FUSE rules.
+                val pipes = instrumentation.uiAutomation.executeShellCommandRw(
+                    "mkdir -p /data/local/tmp/snappdf-qa && cat > $destination && test -s $destination && echo SNAPPDF_SCREENSHOT_SAVED"
+                )
+                ParcelFileDescriptor.AutoCloseOutputStream(pipes[1]).use { output ->
+                    assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
+                }
+                val result = ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).bufferedReader().use { it.readText() }
+                assertTrue("Screenshot evidence must survive APK cleanup", "SNAPPDF_SCREENSHOT_SAVED" in result)
+            } else {
+                val command = "mkdir -p /data/local/tmp/snappdf-qa && cp ${File(directory, name).absolutePath} $destination"
+                ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
+            }
         } finally { bitmap.recycle() }
     }
 }

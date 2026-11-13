@@ -76,11 +76,19 @@ class ScannerUiTest {
             }
             compose.onNodeWithText("Automatische Aufnahme").performScrollTo().performClick()
             compose.runOnIdle { assertTrue(store.settings.value.autoCapture) }
-            // Scroll and tap the visible label. The merged action row includes
-            // its multiline description, which may still extend below the
-            // viewport after bringIntoView has revealed only the label.
-            compose.onNodeWithText("Scan-Verknüpfung", useUnmergedTree = true)
-                .performScrollTo().assertIsDisplayed().performClick()
+            // A grouped settings card is taller than the viewport. LazyColumn's
+            // bringIntoView can align that card without revealing its first row.
+            // Exercise real scrolling until the actual tap target is visible.
+            val shortcut = compose.onNodeWithText("Scan-Verknüpfung", useUnmergedTree = true)
+            repeat(12) {
+                if (runCatching { shortcut.assertIsDisplayed() }.isFailure) {
+                    compose.onNode(hasScrollAction()).performTouchInput {
+                        swipeUp(startY = height * .8f, endY = height * .5f, durationMillis = 350)
+                    }
+                    compose.waitForIdle()
+                }
+            }
+            shortcut.assertIsDisplayed().performClick()
             compose.runOnIdle { assertEquals(1, shortcutRequests) }
             assertTrue(SettingsStore(context).settings.value.autoCapture)
         } finally {
