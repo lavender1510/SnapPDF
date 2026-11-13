@@ -4,6 +4,23 @@
 
 Eine native Android-App für schnelle Dokumentenscans: fotografieren oder Bilder importieren, Papier entzerren, Schrift optimieren und eine mehrseitige PDF lokal speichern. Kotlin, Jetpack Compose und Material 3; Android 8.0 oder neuer (API 26).
 
+## APK installieren
+
+Die signierte Android-APK und ihre SHA-256-Prüfsumme stehen unter [GitHub Releases](https://github.com/lavender1510/SnapPDF/releases). Benötigt wird Android 8.0 oder neuer. APK auf dem Smartphone öffnen und die Installation aus dieser Quelle erlauben. Nach der Installation ist keine Internetverbindung nötig; das OCR-Modell ist bereits enthalten.
+
+Die erste Version ist eine Vorabversion. Tests mit physischen Smartphone-Kameras und unterschiedlichen echten Schulhandschriften stehen noch aus; die durchgeführten Prüfungen sind in [TESTING.md](docs/TESTING.md) dokumentiert.
+
+## Einblicke
+
+Aufnahmen der tatsächlich installierten App; keine Entwurfsbilder.
+
+<p>
+  <img src="docs/screenshots/home-light.png" alt="SnapPDF Startseite im hellen Design" width="230" />
+  <img src="docs/screenshots/home-dark.png" alt="SnapPDF Startseite im dunklen Design" width="230" />
+</p>
+
+Die [helle](docs/screenshots/editor-real-photo-light.png) und [dunkle Scanvorschau](docs/screenshots/editor-real-photo-dark.png) zeigen das gekennzeichnete echte OpenCV-Testfoto.
+
 ## Benutzung
 
 1. **Dokument scannen** öffnet die Kamera. Beim ersten Start die Kameraberechtigung erlauben.
@@ -77,6 +94,10 @@ sha256sum app/build/outputs/apk/release/app-release.apk
 ```
 
 Der [GitHub-Workflow](.github/workflows/android.yml) prüft Unit-Tests, Android Lint und den Debug-Build. Für einen zusätzlichen signierten Build bei einem Versions-Tag oder einem manuellen Workflow-Start werden Repository-Secrets `SNAPPDF_KEYSTORE_BASE64`, `SNAPPDF_STORE_PASSWORD`, `SNAPPDF_KEY_ALIAS` und `SNAPPDF_KEY_PASSWORD` benötigt. Fehlen sie, veröffentlicht die CI keine Release-APK. Der Workflow erstellt selbst keinen GitHub-Release.
+
+## Verifizierter Stand
+
+4 JVM- und 24 native Android-Tests bestehen. Die signierte Produktions-APK wurde zusätzlich auf Android 15 installiert und gestartet. [Nachweise, Prüfsumme und offene Hardware-Abnahme](docs/VERIFICATION.md).
 
 ## Struktur und Tests
 

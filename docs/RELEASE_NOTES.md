@@ -1,4 +1,4 @@
-# SnapPDF 1.0.0
+# SnapPDF 1.0.0 – Vorabversion
 
 Erste native Android-Version für lokale Dokumentenscans mit Jetpack Compose und Material 3.
 
@@ -13,7 +13,14 @@ Erste native Android-Version für lokale Dokumentenscans mit Jetpack Compose und
 
 ## Verifikation
 
-Vor der Veröffentlichung durch die tatsächlich ausgeführten Build-, Test- und Signaturprüfungen ergänzen. Reale Gerätetests und Scanqualität nicht allein aus einem erfolgreichen Build ableiten.
+- 4 JVM-Tests und 24 native Android-Tests erfolgreich; [CI-Nachweis](https://github.com/lavender1510/SnapPDF/actions/runs/43402329013).
+- Debug-/Release-Build und Android Lint erfolgreich, 0 Lint-Fehler.
+- Exakt die angebotene signierte APK auf Android 15 installiert und gestartet; [Installationsnachweis](https://github.com/lavender1510/SnapPDF/actions/runs/43399838735).
+- Offline-OCR und durchsuchbare mehrseitige PDFs mit nativer Darstellung geprüft.
+- Echtes fotografiertes Druckdokument in allen Scanmodi sowie synthetische schwache Linien, Schatten und Dokumentecken geprüft.
+- [Prüfsumme, Signatur und vollständiger Verifikationsstand](VERIFICATION.md).
+
+Tests mit physischen Smartphone-Kameras und verschiedenen echten Schulhandschriften stehen noch aus. Deshalb wird diese Version als Vorabversion veröffentlicht.
 
 ## Bekannte Grenzen
 

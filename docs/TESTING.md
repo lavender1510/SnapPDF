@@ -27,15 +27,18 @@ Die auf Android ausgeführten Tests sind insbesondere für OpenCV, Bitmaps, OCR,
 | `DocumentRepositoryTest` | Entwurfswiederherstellung, durchsuchbare mehrseitige PDFs, Zusammenführung und Erhalt bei Fehlern |
 | `RetakeRecoveryTest` | Fehlgeschlagene Neuaufnahme darf die bereits erfolgreiche Seite nicht ersetzen |
 | `MotionSettingsTest` | Animationsmaßstab der tatsächlichen Compose-Komposition folgt der Einstellung auch nach Stop/Resume |
+| `E2eScanTest` | Zwei JPEGs importieren, mit gebündelter Offline-OCR verarbeiten, als durchsuchbare PDF speichern und nativ rendern; Internetberechtigung des installierten Pakets prüfen |
+| `ScannerUiTest` | Echte Startaktionen, gespeicherte Scanner-Einstellungen, Verknüpfungsaufruf, OCR-Suche und Editor bei großer Schrift |
+| `PdfReaderUiTest` | PDF-Seiten scrollen, Zoom zurücksetzen und Aktionen im Querformat mit großer Schrift erreichen |
 | `PreviewScreenshotsTest` | Installierte App per Android-UI-Automation: Startseite, Einstellungen und echter fotografierter Scanentwurf in Light/Dark |
 
 Quelle, Lizenz und Grenzen des fotografierten Testbilds sind in [TEST_FIXTURES.md](TEST_FIXTURES.md) dokumentiert.
 
-Die CI lädt native Testergebnisse und Berichte als Artefakt **Android-API35-test-evidence** hoch. Screenshots entstehen im externen App-Verzeichnis `files/qa` und werden vor dem Beenden des Emulators zusammen mit einem begrenzten Logcat-Auszug übernommen. Die Editor-Screenshots verwenden ausschließlich das gekennzeichnete OpenCV-Testfoto; die App enthält keine vorgetäuschten Beispieldokumente.
+Die CI lädt native Testergebnisse und Berichte als Artefakt **Android-API35-test-evidence** hoch. Der Screenshot-Test speichert die native Bildschirmausgabe der installierten App über `screencap` unter `/data/local/tmp/snappdf-qa`. Dadurch bleiben sie nach der automatischen APK-Deinstallation erhalten und werden vor dem Beenden des Emulators zusammen mit einem begrenzten Logcat-Auszug übernommen. Die Editor-Screenshots verwenden ausschließlich das gekennzeichnete OpenCV-Testfoto; die App enthält keine vorgetäuschten Beispieldokumente.
 
 ## Verifikationsstand
 
-Die erste Bereitstellung muss die tatsächlich ausgeführten Prüfungen in den Release Notes ausweisen. Ohne ergänzenden Nachweis bleiben Tests auf physischer Hardware, reale Schulunterlagen und das Zusammenspiel mit herstellerspezifischen Kameras offen. Eine synthetische Testseite ist kein Ersatz für echte Fotos.
+Für Version 1.0.0 bestehen alle 4 JVM- und 24 Android-Tests. Build, Lint und die Installation der exakt angehängten signierten APK sind erfolgreich geprüft. Die vollständigen Nachweise, Prüfsumme und verbleibenden Grenzen stehen in [VERIFICATION.md](VERIFICATION.md). Physische Kameratests und echte Schulhandschriften bleiben offen; deshalb erscheint die erste Version als Vorabversion.
 
 ## Manuelle Abnahme mit echten Dokumenten
 
@@ -76,3 +79,5 @@ Die Originalaufnahme und das exportierte PDF nebeneinander vergleichen. Besonder
 ## Release-Prüfung
 
 Vor jeder Veröffentlichung dieselbe signierte APK installieren, die angehängt wird. Signatur mit `apksigner verify`, Versionsnummer mit `aapt dump badging` und SHA-256-Prüfsumme kontrollieren. Ein Update über eine vorherige Version benötigt denselben Signierschlüssel. Keine Schlüssel, Passwörter, privaten Dokumente oder lokalen SDK-Pfade in Git einchecken.
+
+Der manuell startbare Workflow `Signed release smoke` prüft eine bereits signierte APK: unabhängige SHA-256-Prüfsumme, Signatur, Paket und Version, fehlende Internetberechtigung und nicht debuggable Release-Konfiguration. Er installiert anschließend genau diese Datei auf Android 15, startet die App, kontrolliert ihre tatsächliche Startoberfläche und sichert Screenshot und Laufzeitprotokoll. Ein Signierschlüssel wird dafür nicht benötigt.
