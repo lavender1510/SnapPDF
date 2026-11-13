@@ -4,7 +4,11 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.os.ParcelFileDescriptor
 import android.os.Build
-import android.view.accessibility.AccessibilityNodeInfo
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,11 +23,13 @@ import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.Rule
 import org.junit.runner.RunWith
 
 /** Screenshots of the installed app, with a real photo only in its scan draft. */
 @RunWith(AndroidJUnit4::class)
 class PreviewScreenshotsTest {
+    @get:Rule val compose = createEmptyComposeRule()
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val app = ApplicationProvider.getApplicationContext<SnapApplication>()
 
@@ -76,34 +82,23 @@ class PreviewScreenshotsTest {
         }
     }
 
-    private fun awaitNode(label: String): AccessibilityNodeInfo {
-        val deadline = SystemClock.uptimeMillis() + 15_000
-        while (SystemClock.uptimeMillis() < deadline) {
-            findNode(instrumentation.uiAutomation.rootInActiveWindow, label)?.let { return it }
-            SystemClock.sleep(100)
-        }
-        error("The installed app did not display: $label")
-    }
-
-    private fun findNode(node: AccessibilityNodeInfo?, label: String): AccessibilityNodeInfo? {
-        if (node == null) return null
-        if (node.text?.toString()?.contains(label) == true || node.contentDescription?.toString()?.contains(label) == true) return node
-        for (index in 0 until node.childCount) {
-            findNode(node.getChild(index), label)?.let { return it }
-        }
-        return null
+    private fun awaitNode(label: String): SemanticsNodeInteraction {
+        val matcher = hasText(label, substring = true) or hasContentDescription(label, substring = true)
+        // Synchronize with the actual Compose window instead of a system
+        // accessibility cache that can still reference a previous test Activity.
+        compose.waitUntil(20_000) { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
+        return compose.onNode(matcher)
     }
 
     private fun click(label: String) {
-        var node: AccessibilityNodeInfo? = awaitNode(label)
-        while (node != null && !node.isClickable) node = node.parent
-        assertTrue("No clickable action for $label", node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)
+        awaitNode(label).performClick()
     }
 
     private fun capture(name: String) {
         instrumentation.waitForIdleSync()
-        // Wait for accessibility changes and Coil's local image decode to settle.
-        instrumentation.uiAutomation.waitForIdle(500, 5_000)
+        compose.waitForIdle()
+        // Local Coil decoding is asynchronous and does not hold a Compose idler.
+        SystemClock.sleep(250)
         val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot()) { "Screenshot unavailable" }
         try {
             val directory = File(checkNotNull(app.getExternalFilesDir(null)), "qa").apply { mkdirs() }
